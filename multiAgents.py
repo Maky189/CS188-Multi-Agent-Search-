@@ -75,34 +75,38 @@ class ReflexAgent(Agent):
         newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
 
         "*** YOUR CODE HERE ***"
-        foodList = newFood.asList()
-        baseScore = successorGameState.getScore()
+        foodlist = newFood.asList()
+        score = successorGameState.getScore()
 
-        if len(foodList) > 0:
-            minFoodDist = min(manhattanDistance(newPos, f) for f in foodList)
-            FoodFeature = 1.0 / (minFoodDist + 1)
+        if len(foodlist) > 0:
+            minFoodDist = float('inf')
+            for f in foodlist:
+                dist = manhattanDistance(newPos, f)
+                if dist < minFoodDist:
+                    minFoodDist = dist
+            FoodPoint = 1.0 / (minFoodDist + 1)
         else:
             minFoodDist = 0
-            FoodFeature = 0.0
+            FoodPoint = 0.0
         
-        stopPenalty = 0.0
+        stop = 0.0
         if action == Directions.STOP:
-            stopPenalty = -2.0
+            stop = -2.0
 
-        ghostFeature = 0.0
+        ghostPoint = 0.0
         for i, ghostState in enumerate(newGhostStates):
             ghostPos = ghostState.getPosition()
             dist = manhattanDistance(newPos, ghostPos)
             scaredTime = newScaredTimes[i]
             if scaredTime > 0:
-                ghostFeature += 2.0 / (dist + 1)
+                ghostPoint += 2.0 / (dist + 1)
             else:
                 if dist <= 1:
-                    ghostFeature -= 200.0
+                    ghostPoint -= 200.0
                 else:
-                    ghostFeature -= 2.0 / (dist if dist > 0 else 1.0)
-        foodLeftPenalty = -0.3 * len(foodList)
-        value = baseScore + 10.0 * FoodFeature + ghostFeature + foodLeftPenalty + stopPenalty
+                    ghostPoint -= 2.0 / (dist if dist > 0 else 1.0)
+        foodLeft = -0.3 * len(foodlist)
+        value = score + 10.0 * FoodPoint + ghostPoint + foodLeft + stop
         return value
 
 
@@ -165,7 +169,48 @@ class MinimaxAgent(MultiAgentSearchAgent):
         Returns whether or not the game state is a losing state
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        numGhots = gameState.getNumAgents() - 1
+        return self.maximize(gameState, 1, numGhots)
+    
+    def maximize(self, gameState, depth, numGhosts):
+
+        if gameState.isWin() or gameState.isLose():
+            return self.evaluationFunction(gameState)
+        maxValue = float("-inf")
+        best_move = Directions.STOP
+
+        for action in gameState.getLegalActions(0):
+            successor = gameState.generateSuccessor(0, action)
+            temp = self.minimize(successor, depth, 1, numGhosts)
+            
+            if temp > maxValue:
+                maxValue = temp
+                best_move = action
+
+        if depth > 1:
+            return maxValue
+        return best_move
+    
+    def minimize(self, gameState, depth, agentIndex, numGhosts):
+
+        if gameState.isWin() or gameState.isLose():
+            return self.evaluationFunction(gameState)
+        
+        minValue = float("inf")
+        legalActions = gameState.getLegalActions(agentIndex)
+        successors = [gameState.generateSuccessor(agentIndex, action) for action in legalActions]
+
+        if agentIndex == numGhosts:
+            if depth < self.depth:
+                for successor in successors:
+                    minValue = min(minValue, self.maximize(successor, depth + 1, numGhosts))
+            else:
+                for successor in successors:
+                    minValue = min(minValue, self.evaluationFunction(successor))
+        else:
+            for successor in successors:
+                minValue = min(minValue, self.minimize(successor, depth, agentIndex + 1, numGhosts))
+        return minValue
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """
