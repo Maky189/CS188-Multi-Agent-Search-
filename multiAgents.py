@@ -75,35 +75,25 @@ class ReflexAgent(Agent):
         newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
 
         "*** YOUR CODE HERE ***"
-        foodList = newFood.asList()
-        baseScore = successorGameState.getScore()
+        foodsPos = newFood.asList()
+        foodsPos = sorted(foodsPos, key = lambda pos: manhattanDistance(newPos, pos))
+        closestFoodDist = 0
+        if len(foodsPos) > 0:
+          closestFoodDist = manhattanDistance(foodsPos[0], newPos)
 
-        if len(foodList) > 0:
-            minFoodDist = min(manhattanDistance(newPos, f) for f in foodList)
-            FoodFeature = 1.0 / (minFoodDist + 1)
-        else:
-            minFoodDist = 0
-            FoodFeature = 0.0
-        
-        stopPenalty = 0.0
-        if action == Directions.STOP:
-            stopPenalty = -2.0
+        foodCount = successorGameState.getNumFood()
+        foodFeature = - closestFoodDist - 15*foodCount
 
-        ghostFeature = 0.0
-        for i, ghostState in enumerate(newGhostStates):
-            ghostPos = ghostState.getPosition()
-            dist = manhattanDistance(newPos, ghostPos)
-            scaredTime = newScaredTimes[i]
-            if scaredTime > 0:
-                ghostFeature += 2.0 / (dist + 1)
-            else:
-                if dist <= 1:
-                    ghostFeature -= 200.0
-                else:
-                    ghostFeature -= 2.0 / (dist if dist > 0 else 1.0)
-        foodLeftPenalty = -0.3 * len(foodList)
-        value = baseScore + 10.0 * FoodFeature + ghostFeature + foodLeftPenalty + stopPenalty
-        return value
+        activeGhostsPos = []
+        for ghost in newGhostStates:
+          if ghost.scaredTimer == 0:
+            activeGhostsPos.append(ghost.getPosition())
+        activeGhostsPos = sorted(activeGhostsPos, key = lambda pos: manhattanDistance(pos, newPos))
+        closestActiveGhostDist = 0
+        if len(activeGhostsPos) > 0:
+          closestActiveGhostDist = manhattanDistance(activeGhostsPos[0], newPos)
+        return closestActiveGhostDist + foodFeature
+
 
 
 def scoreEvaluationFunction(currentGameState: GameState):
