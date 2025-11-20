@@ -222,7 +222,56 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         Returns the minimax action using self.depth and self.evaluationFunction
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        numGhosts = gameState.getNumAgents() - 1
+        return self.maximize(gameState, 1, numGhosts, float("-inf"), float("inf"))
+
+    def maximize(self, gameState, depth, numGhosts, alpha, beta):
+
+        if gameState.isWin() or gameState.isLose():
+            return self.evaluationFunction(gameState)
+
+        maxValue = float("-inf")
+        best_action = Directions.STOP
+
+        for action in gameState.getLegalActions(0):
+            successor = gameState.generateSuccessor(0, action)
+            temp = self.minimize(successor, depth, 1, numGhosts, alpha, beta)
+
+            if temp > maxValue:
+                maxValue = temp
+                best_action = action
+
+            if maxValue > beta:
+                return maxValue
+            alpha = max(alpha, maxValue)
+
+        if depth > 1:
+            return maxValue
+        return best_action
+    
+    def minimize(self, gameState, depth, agentIndex, numGhosts, alpha, beta):
+
+        if gameState.isWin() or gameState.isLose():
+            return self.evaluationFunction(gameState)
+        
+        minValue = float("inf")
+        for action in gameState.getLegalActions(agentIndex):
+            successor = gameState.generateSuccessor(agentIndex, action)
+            if agentIndex == numGhosts:
+                if depth < self.depth:
+                    temp = self.maximize(successor, depth + 1, numGhosts, alpha, beta)
+                else:
+                    temp = self.evaluationFunction(successor)
+            else:
+                temp = self.minimize(successor, depth, agentIndex + 1, numGhosts, alpha, beta)
+            
+            if temp < minValue:
+                minValue = temp
+
+            if minValue < alpha:
+                return minValue
+            beta = min(beta, minValue)
+        return minValue
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
     """
